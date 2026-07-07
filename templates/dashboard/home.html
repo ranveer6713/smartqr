@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — Smart QR Attendance{% endblock %}
+
+{% block content %}
+<!-- ======================================================
+     PAGE HEADER
+     ====================================================== -->
+<div class="page-header">
+  <div class="container-fluid px-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1>
+          <i class="bi bi-speedometer2 me-2 text-gradient"></i>Faculty Dashboard
+        </h1>
+        <p class="text-muted small mb-0">
+          Welcome back, <strong class="text-dark">{{ faculty.get_full_name|default:faculty.username }}</strong>
+          &bull; {{ now|date:"D, d M Y — H:i" }}
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'attendance:create_session' %}" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-2"></i>New Session
+        </a>
+        <button id="refreshBtn" class="btn btn-glass" title="Refresh">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+  <!-- ====================================================
+       ACTIVE SESSION BANNER
+       ==================================================== -->
+  {% if active_session %}
+  <div class="active-session-banner mb-4 fade-in-up">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <span class="pulse-dot"></span>
+        <div>
+          <div class="fw-700 text-success">
+            Active Session: {{ active_session.subject_name }}
+          </div>
+          <div class="small text-muted">
+            {{ active_session.branch }} &bull; Sem {{ active_session.semester }},
+            Sec {{ active_session.section }} &bull; Room {{ active_session.classroom }}
+            &bull; <span class="text-success fw-600">{{ active_session.total_present }} present</span>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'attendance:session_qr' pk=active_session.pk %}"
+           class="btn btn-success btn-sm">
+          <i class="bi bi-qr-code me-1"></i>View QR
+        </a>
+        <a href="{% url 'attendance:session_detail' pk=active_session.pk %}"
+           class="btn btn-glass btn-sm">
+          <i class="bi bi-list-check me-1"></i>Attendance List
+        </a>
+        <a href="{% url 'attendance:close_session' pk=active_session.pk %}"
+           class="btn btn-danger btn-sm">
+          <i class="bi bi-x-circle me-1"></i>Close
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ====================================================
+       STATS ROW
+       ==================================================== -->
+  <div class="row g-3 mb-4 stagger-children">
+    <!-- Total Sessions -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card primary">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon primary"><i class="bi bi-collection"></i></div>
+          <div>
+            <div class="stat-value">{{ total_sessions }}</div>
+            <div class="stat-label">Total Sessions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Sessions -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card info">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon info"><i class="bi bi-calendar-day"></i></div>
+          <div>
+            <div class="stat-value">{{ todays_session_count }}</div>
+            <div class="stat-label">Today's Sessions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Attendance -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card success">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon success"><i class="bi bi-person-check"></i></div>
+          <div>
+            <div class="stat-value">{{ total_attendance_today }}</div>
+            <div class="stat-label">Attendance Today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Session indicator -->
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card {% if active_session %}success{% else %}warning{% endif %}">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon {% if active_session %}success{% else %}warning{% endif %}">
+            <i class="bi bi-{% if active_session %}broadcast{% else %}broadcast-pin{% endif %}"></i>
+          </div>
+          <div>
+            <div class="stat-value">{% if active_session %}ON{% else %}OFF{% endif %}</div>
+            <div class="stat-label">Live Session</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       QUICK ACTIONS
+       ==================================================== -->
+  <div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <div class="section-title">Quick Actions</div>
+        <div class="section-sub">Frequently used actions</div>
+      </div>
+    </div>
+    <div class="row g-3 stagger-children">
+      <div class="col-lg-4 col-md-6">
+        <a href="{% url 'attendance:create_session' %}" class="action-card">
+          <div class="action-icon" style="background: linear-gradient(135deg,#4f46e5,#6366f1)">
+            <i class="bi bi-plus-circle"></i>
+          </div>
+          <h6>Create Session</h6>
+          <p>Start a new QR attendance session for your class</p>
+        </a>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        {% if active_session %}
+        <a href="{% url 'attendance:session_qr' pk=active_session.pk %}" class="action-card">
+          <div class="action-icon" style="background: linear-gradient(135deg,#10b981,#059669)">
+            <i class="bi bi-qr-code-scan"></i>
+          </div>
+          <h6>Show QR Code</h6>
+          <p>Display QR code for active session on projector</p>
+        </a>
+        {% else %}
+        <div class="action-card opacity-50" style="cursor:not-allowed">
+          <div class="action-icon" style="background: linear-gradient(135deg,#10b981,#059669)">
+            <i class="bi bi-qr-code-scan"></i>
+          </div>
+          <h6>Show QR Code</h6>
+          <p>No active session. Create a session first.</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <a href="{% url 'reports:list' %}" class="action-card">
+          <div class="action-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706)">
+            <i class="bi bi-bar-chart-line"></i>
+          </div>
+          <h6>View Reports</h6>
+          <p>Access historical attendance records and export data</p>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       BOTTOM: Today's Sessions + Recent Attendance
+       ==================================================== -->
+  <div class="row g-4">
+
+    <!-- Today's Sessions Table -->
+    <div class="col-lg-5">
+      <div class="glass-card h-100">
+        <div class="p-4 border-bottom border-opacity-10">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="section-title">Today's Sessions</div>
+              <div class="section-sub">{{ todays_session_count }} session(s) today</div>
+            </div>
+            <i class="bi bi-calendar2-check fs-4 text-muted"></i>
+          </div>
+        </div>
+        <div class="p-4">
+          {% if todays_sessions %}
+          <div class="table-responsive">
+            <table class="table table-dark-custom table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Room</th>
+                  <th>Present</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sess in todays_sessions %}
+                <tr>
+                  <td>
+                    <a href="{% url 'attendance:session_detail' pk=sess.pk %}"
+                       class="text-dark text-decoration-none fw-600">
+                      {{ sess.subject_name }}
+                    </a>
+                    <div class="small text-muted">{{ sess.start_time|date:"H:i" }}</div>
+                  </td>
+                  <td class="text-muted">{{ sess.classroom }}</td>
+                  <td>
+                    <span class="text-success fw-600">{{ sess.total_present }}</span>
+                  </td>
+                  <td>
+                    <span class="badge-status
+                      {% if sess.status == 'ACTIVE' %}badge-active
+                      {% elif sess.status == 'CLOSED' %}badge-closed
+                      {% else %}badge-expired{% endif %}">
+                      {{ sess.get_status_display }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-calendar-x fs-1 text-muted opacity-50"></i>
+            <p class="text-muted mt-3 mb-0">No sessions created today.</p>
+            <a href="{% url 'attendance:create_session' %}" class="btn btn-primary btn-sm mt-3">
+              <i class="bi bi-plus me-1"></i>Create One
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Attendance -->
+    <div class="col-lg-7">
+      <div class="glass-card h-100">
+        <div class="p-4 border-bottom border-opacity-10">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="section-title">Recent Attendance</div>
+              <div class="section-sub">Latest submissions across all sessions</div>
+            </div>
+            <i class="bi bi-person-lines-fill fs-4 text-muted"></i>
+          </div>
+        </div>
+        <div class="p-4">
+          {% if recent_attendance %}
+          <div class="table-responsive">
+            <table class="table table-dark-custom table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Roll No.</th>
+                  <th>Name</th>
+                  <th>Subject</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in recent_attendance %}
+                <tr class="slide-in">
+                  <td>
+                    <span class="roll-badge-dashboard fw-600">
+                      {{ record.roll_number }}
+                    </span>
+                  </td>
+                  <td class="fw-500 text-dark">{{ record.full_name }}</td>
+                  <td class="text-muted small">{{ record.session.subject_name }}</td>
+                  <td class="text-muted small">{{ record.marked_at|date:"H:i" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
+            <p class="text-muted mt-3 mb-0">No attendance records yet.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+</div><!-- /container -->
+{% endblock %}

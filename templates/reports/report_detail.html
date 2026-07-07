@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Report — {{ session.subject_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container-fluid px-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'reports:list' %}">Reports</a></li>
+        <li class="breadcrumb-item active">{{ session.subject_name }}</li>
+      </ol>
+    </nav>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-2">
+      <div>
+        <h1>
+          <i class="bi bi-file-earmark-bar-graph me-2 text-gradient"></i>
+          {{ session.subject_name }}
+        </h1>
+        <p class="text-muted small mb-0">
+          {{ session.branch }} &bull; Sem {{ session.semester }}, Sec {{ session.section }}
+          &bull; Room {{ session.classroom }}
+          &bull; {{ session.start_time|date:"d M Y, H:i" }}
+        </p>
+      </div>
+      <!-- Export Buttons -->
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'reports:export_csv' pk=session.pk %}"
+           class="btn btn-outline-success">
+          <i class="bi bi-filetype-csv me-2"></i>Export CSV
+        </a>
+        <a href="{% url 'reports:export_excel' pk=session.pk %}"
+           class="btn btn-outline-primary">
+          <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
+        </a>
+        <a href="{% url 'reports:list' %}" class="btn btn-glass">
+          <i class="bi bi-arrow-left me-2"></i>Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4 stagger-children">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card success">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon success"><i class="bi bi-people"></i></div>
+          <div>
+            <div class="stat-value">{{ total_present }}</div>
+            <div class="stat-label">Total Present</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card info">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon info"><i class="bi bi-clock"></i></div>
+          <div>
+            <div class="stat-value">{{ session.duration_minutes }}m</div>
+            <div class="stat-label">Duration</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card primary">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon primary"><i class="bi bi-calendar"></i></div>
+          <div>
+            <div class="stat-value">{{ session.start_time|date:"d M" }}</div>
+            <div class="stat-label">Date</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card warning">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon warning"><i class="bi bi-door-open"></i></div>
+          <div>
+            <div class="stat-value">{{ session.classroom }}</div>
+            <div class="stat-label">Classroom</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student List -->
+  <div class="glass-card fade-in-up">
+    <!-- Search -->
+    <div class="p-4 border-bottom border-opacity-10">
+      <form method="get" class="no-spinner d-flex gap-2">
+        <input type="text" name="q" value="{{ query }}"
+               class="form-control" placeholder="Search by name or roll number…" />
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-search"></i>
+        </button>
+        {% if query %}
+        <a href="{% url 'reports:detail' pk=session.pk %}" class="btn btn-glass">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      {% if attendance_list %}
+      <table class="table table-dark-custom table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Roll Number</th>
+            <th>Full Name</th>
+            <th>Department</th>
+            <th>Semester</th>
+            <th>Section</th>
+            <th>Marked At</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in attendance_list %}
+          <tr>
+            <td class="text-muted">{{ forloop.counter }}</td>
+            <td>
+              <span class="badge bg-primary bg-opacity-10 text-primary fw-600 px-2 py-1">
+                {{ record.roll_number }}
+              </span>
+            </td>
+            <td class="fw-600 text-dark">{{ record.full_name }}</td>
+            <td class="text-muted">{{ record.department }}</td>
+            <td class="text-muted">{{ record.semester }}</td>
+            <td class="text-muted">{{ record.section }}</td>
+            <td class="text-muted small">{{ record.marked_at|date:"d M Y, H:i:s" }}</td>
+            <td class="text-muted small font-monospace">{{ record.ip_address|default:"—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
+        <p class="text-muted mt-3">
+          {% if query %}No records match "{{ query }}"{% else %}No attendance records for this session.{% endif %}
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if attendance_list %}
+    <div class="p-3 border-top border-opacity-10 d-flex justify-content-between align-items-center">
+      <span class="text-muted small">{{ attendance_list|length }} record(s)</span>
+      <div class="d-flex gap-2">
+        <a href="{% url 'reports:export_csv' pk=session.pk %}"
+           class="btn btn-sm btn-outline-success">
+          <i class="bi bi-download me-1"></i>CSV
+        </a>
+        <a href="{% url 'reports:export_excel' pk=session.pk %}"
+           class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-download me-1"></i>Excel
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div><!-- /card -->
+</div>
+{% endblock %}

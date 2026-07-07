@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Already Marked — Smart QR Attendance</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="{% static 'css/main.css' %}" rel="stylesheet" />
+</head>
+<body class="student-page">
+
+<div class="min-vh-100 d-flex align-items-center py-4">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-6 col-md-8 col-12">
+        <div class="student-card fade-in-up">
+          
+          <!-- Warning Header -->
+          <div class="student-header bg-warning" style="background: linear-gradient(135deg, var(--warning), #ea580c) !important;">
+            <div class="mb-3">
+              <i class="bi bi-exclamation-triangle" style="font-size:40px; color:#ffffff"></i>
+            </div>
+            <h1 class="h4 fw-800 text-white mb-1">Already Recorded</h1>
+            <p class="mb-0" style="color:rgba(255,255,255,0.9); font-size:14px;">
+              {{ session.subject_name }}
+            </p>
+          </div>
+
+          <!-- Body Content -->
+          <div class="p-4 text-center">
+            <p class="text-muted mb-4">
+              Attendance has already been recorded for Roll Number 
+              <strong class="text-dark">{{ roll_number }}</strong> in this session.
+            </p>
+
+            <div class="alert alert-warning d-flex align-items-center justify-content-center gap-2 mb-3">
+              <i class="bi bi-info-circle fs-5"></i>
+              Duplicate submissions are not allowed.
+            </div>
+
+            <p class="small text-muted mb-0">
+              If this is an error, please contact your faculty member.
+            </p>
+          </div>
+
+        </div><!-- /student-card -->
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

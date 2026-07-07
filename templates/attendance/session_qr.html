@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Code — {{ session.subject_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container-fluid px-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Session QR</li>
+      </ol>
+    </nav>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-2">
+      <h1><i class="bi bi-qr-code me-2 text-gradient"></i>QR Code — {{ session.subject_name }}</h1>
+      <div class="d-flex gap-2">
+        {% if session.is_active %}
+        <a href="{% url 'attendance:close_session' pk=session.pk %}"
+           class="btn btn-danger">
+          <i class="bi bi-x-circle me-2"></i>Close Session
+        </a>
+        {% endif %}
+        <a href="{% url 'attendance:session_detail' pk=session.pk %}"
+           class="btn btn-glass">
+          <i class="bi bi-list-check me-2"></i>Attendance List
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-4 py-4"
+     {% if session.is_active %}data-refresh-interval="30"{% endif %}>
+
+  <div class="row g-4">
+
+    <!-- ============================
+         LEFT: QR Code + Timer
+         ============================ -->
+    <div class="col-lg-5">
+      <div class="glass-card p-4 text-center fade-in-up">
+
+        <!-- Session status -->
+        <div class="mb-3">
+          <span class="badge-status
+            {% if session.status == 'ACTIVE' %}badge-active
+            {% elif session.status == 'CLOSED' %}badge-closed
+            {% else %}badge-expired{% endif %} px-3 py-2">
+            {% if session.is_active %}
+              <span class="pulse-dot me-2"></span>
+            {% endif %}
+            {{ session.get_status_display }}
+          </span>
+        </div>
+
+        {% if session.qr_code and session.is_active %}
+        <!-- QR Code Image -->
+        <div class="qr-container mb-3 mx-auto" style="max-width: 300px;">
+          <img src="{{ session.qr_code.url }}" alt="Attendance QR Code"
+               class="img-fluid" />
+        </div>
+
+        <!-- Student URL display and Copy -->
+        <div class="mb-4 px-2 text-start">
+          <div class="text-muted small text-uppercase fw-600 letter-spacing-1 mb-2">
+            <i class="bi bi-link-45deg me-1"></i>Student Submission Link
+          </div>
+          <div class="input-group">
+            <input type="text" class="form-control bg-light border-light text-muted" 
+                   id="studentUrl" value="{{ student_url }}" readonly 
+                   style="font-size: 12px; border-radius: 8px 0 0 8px;">
+            <button class="btn btn-outline-secondary" type="button" onclick="copyStudentUrl()" 
+                    style="border-radius: 0 8px 8px 0; background: #f1f5f9;">
+              <i class="bi bi-copy" id="copyIcon"></i>
+            </button>
+          </div>
+          {% if session.is_localhost %}
+          <div class="mt-3 bg-danger bg-opacity-10 border border-danger border-opacity-35 rounded-3 p-3 text-danger-emphasis" style="font-size: 12.5px;">
+            <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>
+            <strong>Warning:</strong> Server IP is resolved as <code>127.0.0.1</code> (localhost). Students cannot connect from their mobile phones. Please make sure:
+            <ol class="mt-2 mb-0 ps-3">
+              <li>Your device is connected to the college Wi-Fi network.</li>
+              <li>Start the Django server by running: <code class="bg-light text-danger-emphasis px-1 py-0.5 rounded border border-danger border-opacity-25">python manage.py runserver 0.0.0.0:8000</code>.</li>
+            </ol>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Countdown Timer -->
+        <div class="mb-2">
+          <div class="text-muted small text-uppercase fw-600 letter-spacing-1 mb-2">
+            <i class="bi bi-clock me-1"></i>Time Remaining
+          </div>
+          <div class="timer-display"
+               id="countdownTimer"
+               data-seconds="{{ time_remaining }}"
+               data-expired-url="{% url 'dashboard:home' %}">
+            --:--
+          </div>
+        </div>
+
+        <div class="text-muted small">
+          Expires at <strong class="text-dark">{{ session.expiry_time|date:"H:i" }}</strong>
+        </div>
+
+        <!-- Print hint -->
+        <div class="mt-4 bg-glass p-3 rounded-3">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1 text-info"></i>
+            Display this on the projector. Students scan with their phone camera.
+          </small>
+        </div>
+
+        {% elif session.qr_code and not session.is_active %}
+        <!-- Session closed/expired — show dimmed QR -->
+        <div class="qr-container mb-4 mx-auto opacity-25" style="max-width: 260px;">
+          <img src="{{ session.qr_code.url }}" alt="QR Code (Expired)" class="img-fluid" />
+        </div>
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          This session is <strong>{{ session.get_status_display }}</strong>.
+          QR code is no longer valid.
+        </div>
+        {% else %}
+        <div class="alert alert-danger">
+          <i class="bi bi-x-circle me-2"></i>QR code generation failed. Please try again.
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- ============================
+         RIGHT: Session Info + Attendance Preview
+         ============================ -->
+    <div class="col-lg-7">
+
+      <!-- Session Details -->
+      <div class="glass-card p-4 mb-4 fade-in-up">
+        <div class="section-title mb-3">
+          <i class="bi bi-info-circle me-2"></i>Session Details
+        </div>
+        <div class="row g-2">
+          {% with fields=session %}
+          <div class="col-sm-6">
+            <div class="session-info-item">
+              <div class="session-info-label">Subject</div>
+              <div class="session-info-value">{{ session.subject_name }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="session-info-item">
+              <div class="session-info-label">Branch / Dept</div>
+              <div class="session-info-value">{{ session.branch }}</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Semester</div>
+              <div class="session-info-value">{{ session.semester }}</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Section</div>
+              <div class="session-info-value">{{ session.section }}</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Classroom</div>
+              <div class="session-info-value">{{ session.classroom }}</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Duration</div>
+              <div class="session-info-value">{{ session.duration_minutes }} min</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Started At</div>
+              <div class="session-info-value">{{ session.start_time|date:"H:i" }}</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Total Present</div>
+              <div class="session-info-value text-success fw-700">{{ session.total_present }}</div>
+            </div>
+          </div>
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- Live Attendance Preview -->
+      <div class="glass-card p-4 fade-in-up">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="section-title">
+            <i class="bi bi-people me-2"></i>Live Attendance
+            <span class="badge bg-success bg-opacity-20 text-success ms-2">
+              {{ attendance_list|length }} present
+            </span>
+          </div>
+          <a href="{% url 'attendance:session_detail' pk=session.pk %}"
+             class="btn btn-glass btn-sm">
+            View All <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+
+        {% if attendance_list %}
+        <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+          <table class="table table-dark-custom table-hover mb-0">
+            <thead style="position: sticky; top:0; background: #f1f5f9;">
+              <tr>
+                <th>#</th>
+                <th>Roll No.</th>
+                <th>Name</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in attendance_list %}
+              <tr>
+                <td class="text-muted">{{ forloop.counter }}</td>
+                <td><span class="fw-600 text-primary-emphasis">{{ record.roll_number }}</span></td>
+                <td class="text-dark">{{ record.full_name }}</td>
+                <td class="text-muted small">{{ record.marked_at|date:"H:i:s" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-hourglass-split fs-1 text-muted opacity-50"></i>
+          <p class="text-muted mt-3 mb-0">Waiting for students to scan and submit…</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div><!-- /row -->
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function copyStudentUrl() {
+  const urlInput = document.getElementById('studentUrl');
+  if (!urlInput) return;
+  urlInput.select();
+  urlInput.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(urlInput.value).then(() => {
+    const copyIcon = document.getElementById('copyIcon');
+    if (copyIcon) {
+      copyIcon.className = 'bi bi-check-lg text-success';
+      setTimeout(() => {
+        copyIcon.className = 'bi bi-copy';
+      }, 2000);
+    }
+  });
+}
+</script>
+{% endblock %}
