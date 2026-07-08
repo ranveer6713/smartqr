@@ -101,6 +101,7 @@ class AttendanceSession(models.Model):
     classroom = models.CharField(max_length=50)
     duration_minutes = models.PositiveSmallIntegerField(choices=DURATION_CHOICES, default=10)
     meeting_link = models.URLField(max_length=500, blank=True, null=True)
+    require_photo = models.BooleanField(default=False)
 
     # --- Timing ---
     start_time = models.DateTimeField(auto_now_add=True)
@@ -188,6 +189,7 @@ class Attendance(models.Model):
     department = models.CharField(max_length=100)
     semester = models.PositiveSmallIntegerField()
     section = models.CharField(max_length=10)
+    student_photo = models.ImageField(upload_to='student_photos/', null=True, blank=True)
 
     # Security — stored for audit trail
     ip_address = models.GenericIPAddressField(null=True, blank=True)

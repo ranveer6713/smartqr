@@ -190,6 +190,20 @@
               <div class="session-info-value text-success fw-700">{{ session.total_present }}</div>
             </div>
           </div>
+          <div class="col-sm-4">
+            <div class="session-info-item">
+              <div class="session-info-label">Require Photo</div>
+              <div class="session-info-value">
+                {% if session.require_photo %}
+                  <span class="badge bg-danger bg-opacity-10 text-danger fw-600 px-2 py-1" style="font-size: 11px;">
+                    <i class="bi bi-camera-fill me-1"></i>Yes
+                  </span>
+                {% else %}
+                  <span class="text-muted small">No</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
           {% endwith %}
         </div>
       </div>

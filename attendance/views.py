@@ -222,7 +222,7 @@ def mark_attendance(request, session_id, token):
             })
 
     if request.method == 'POST':
-        form = StudentAttendanceForm(request.POST)
+        form = StudentAttendanceForm(request.POST, request.FILES, session=session)
         if form.is_valid():
             attendance = form.save(commit=False)
             attendance.session = session
@@ -243,7 +243,7 @@ def mark_attendance(request, session_id, token):
             'department': session.branch,
             'semester': session.semester,
             'section': session.section,
-        })
+        }, session=session)
 
     context = {
         'form': form,

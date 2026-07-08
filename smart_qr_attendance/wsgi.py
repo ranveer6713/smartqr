@@ -8,9 +8,18 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 """
 
 import os
+import sys
+
+# Patch sqlite3 with pysqlite3 for Vercel/serverless deployments
+try:
+    import pysqlite3
+    sys.modules['sqlite3'] = pysqlite3
+except ImportError:
+    pass
 
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smart_qr_attendance.settings')
 
 application = get_wsgi_application()
+app = application

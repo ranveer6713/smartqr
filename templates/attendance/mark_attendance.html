@@ -58,7 +58,7 @@
 
           <!-- Form -->
           <div class="p-4">
-            <form method="post" action="" id="attendanceForm">
+            <form method="post" action="" id="attendanceForm" enctype="multipart/form-data">
               {% csrf_token %}
 
               <!-- Full Name -->
@@ -95,7 +95,7 @@
               </div>
 
               <!-- Semester + Section -->
-              <div class="row g-3 mb-4">
+              <div class="row g-3 mb-3">
                 <div class="col-6">
                   <label class="form-label">
                     <i class="bi bi-layers me-1"></i>Semester <span class="text-danger">*</span>
@@ -115,6 +115,22 @@
                   {% endif %}
                 </div>
               </div>
+
+              <!-- Student Photo (Conditional) -->
+              {% if form.student_photo %}
+              <div class="mb-4">
+                <label class="form-label">
+                  <i class="bi bi-camera-fill me-1"></i>Take/Upload Photo <span class="text-danger">*</span>
+                </label>
+                {{ form.student_photo }}
+                {% if form.student_photo.errors %}
+                  <div class="text-danger small mt-1">{{ form.student_photo.errors.0 }}</div>
+                {% endif %}
+                <div class="text-muted small mt-1">
+                  <i class="bi bi-info-circle me-1"></i>Please capture a live selfie or upload a clear photo.
+                </div>
+              </div>
+              {% endif %}
 
               <!-- Submit -->
               <button type="submit" class="btn btn-primary w-100 py-3 fw-700 fs-6" id="submitBtn">

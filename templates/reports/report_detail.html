@@ -115,6 +115,9 @@
         <thead>
           <tr>
             <th>#</th>
+            {% if session.require_photo %}
+            <th>Photo</th>
+            {% endif %}
             <th>Roll Number</th>
             <th>Full Name</th>
             <th>Department</th>
@@ -128,6 +131,17 @@
           {% for record in attendance_list %}
           <tr>
             <td class="text-muted">{{ forloop.counter }}</td>
+            {% if session.require_photo %}
+            <td>
+              {% if record.student_photo %}
+                <a href="{{ record.student_photo.url }}" target="_blank">
+                  <img src="{{ record.student_photo.url }}" alt="Selfie" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;" />
+                </a>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            {% endif %}
             <td>
               <span class="badge bg-primary bg-opacity-10 text-primary fw-600 px-2 py-1">
                 {{ record.roll_number }}
