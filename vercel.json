@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "build_files.sh",
+      "use": "@vercel/python"
+    },
+    {
       "src": "smart_qr_attendance/wsgi.py",
       "use": "@vercel/python",
       "config": {
@@ -12,7 +16,7 @@
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "dest": "/staticfiles/$1"
     },
     {
       "src": "/(.*)",
