@@ -9,6 +9,9 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Patch sqlite3 with pysqlite3 for Vercel/serverless deployments
 try:
