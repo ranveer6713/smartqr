@@ -53,10 +53,10 @@
           </span>
         </div>
 
-        {% if qr_code_base64 and session.is_active %}
+        {% if session.is_active %}
         <!-- QR Code Image -->
         <div class="qr-container mb-3 mx-auto" style="max-width: 300px;">
-          <img src="{{ qr_code_base64 }}" alt="Attendance QR Code"
+          <img src="{% url 'attendance:session_qr_image' session.pk %}" alt="Attendance QR Code"
                class="img-fluid" />
         </div>
 
@@ -111,19 +111,15 @@
           </small>
         </div>
 
-        {% elif qr_code_base64 and not session.is_active %}
+        {% else %}
         <!-- Session closed/expired — show dimmed QR -->
         <div class="qr-container mb-4 mx-auto opacity-25" style="max-width: 260px;">
-          <img src="{{ qr_code_base64 }}" alt="QR Code (Expired)" class="img-fluid" />
+          <img src="{% url 'attendance:session_qr_image' session.pk %}" alt="QR Code (Expired)" class="img-fluid" />
         </div>
         <div class="alert alert-warning">
           <i class="bi bi-exclamation-triangle me-2"></i>
           This session is <strong>{{ session.get_status_display }}</strong>.
           QR code is no longer valid.
-        </div>
-        {% else %}
-        <div class="alert alert-danger">
-          <i class="bi bi-x-circle me-2"></i>QR code generation failed. Please try again.
         </div>
         {% endif %}
 

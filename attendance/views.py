@@ -14,6 +14,7 @@ Views:
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
@@ -91,7 +92,6 @@ def session_qr(request, pk):
     session.refresh_from_db()
 
     student_url = session.get_student_url(request)
-    qr_code_base64 = session.get_qr_code_base64(student_url)
     
     # Determine if localhost warning should be shown (based on request hostname)
     host = request.get_host().split(':')[0]
@@ -102,10 +102,40 @@ def session_qr(request, pk):
         'time_remaining': session.time_remaining_seconds,
         'attendance_list': session.attendance_records.order_by('-marked_at'),
         'student_url': student_url,
-        'qr_code_base64': qr_code_base64,
         'is_localhost': is_localhost,
     }
     return render(request, 'attendance/session_qr.html', context)
+
+
+@login_required
+def session_qr_image(request, pk):
+    """
+    Generate the QR code image dynamically in-memory and return it as a PNG response.
+    Requires no disk writes, making it compatible with Vercel serverless functions.
+    """
+    session = get_object_or_404(AttendanceSession, pk=pk, faculty=request.user)
+    student_url = session.get_student_url(request)
+    
+    import io
+    import qrcode
+    
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(student_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color='#1a1a2e', back_color='white')
+    img = img.convert('RGB')
+    
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    return HttpResponse(buffer.getvalue(), content_type="image/png")
 
 
 @login_required
