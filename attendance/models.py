@@ -133,17 +133,45 @@ class AttendanceSession(models.Model):
         super().save(*args, **kwargs)
 
     def get_student_url(self, request):
-        """Build the absolute local network URL for students to scan/access."""
-        from .utils import get_local_ip
-        local_ip = get_local_ip()
-        port = request.META.get('SERVER_PORT', '8000')
-        return f"http://{local_ip}:{port}/attendance/{self.session_id}/{self.token}/"
+        """Build the absolute URL for students to scan/access (handles local and production/Vercel)."""
+        host = request.get_host()
+        parts = host.split(':')
+        hostname = parts[0]
+        
+        # If running locally on localhost/127.0.0.1, resolve the LAN IP so other devices can connect
+        if hostname == '127.0.0.1' or hostname == 'localhost':
+            from .utils import get_local_ip
+            local_ip = get_local_ip()
+            port = parts[1] if len(parts) > 1 else '80'
+            host = f"{local_ip}:{port}"
+            
+        protocol = 'https' if request.is_secure() or request.META.get('HTTP_X_FORWARDED_PROTO') == 'https' else 'http'
+        return f"{protocol}://{host}/attendance/{self.session_id}/{self.token}/"
 
-    @property
-    def is_localhost(self):
-        """Check if the local network IP is localhost (loopback)."""
-        from .utils import get_local_ip
-        return get_local_ip().startswith('127.')
+    def get_qr_code_base64(self, student_url):
+        """Generate a base64 encoded PNG image data URI for the QR code (no disk writes)."""
+        import io
+        import base64
+        import qrcode
+        
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(student_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color='#1a1a2e', back_color='white')
+        img = img.convert('RGB')
+        
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        return f"data:image/png;base64,{img_base64}"
 
     @property
     def is_active(self):

@@ -64,9 +64,6 @@ def create_session(request):
             )
             session.save()
 
-            # Generate and attach QR code image
-            session, url = generate_qr_code(session, request)
-
             messages.success(request, 'Attendance session created successfully!')
             return redirect('attendance:session_qr', pk=session.pk)
         else:
@@ -93,11 +90,20 @@ def session_qr(request, pk):
     # Reload to get fresh status
     session.refresh_from_db()
 
+    student_url = session.get_student_url(request)
+    qr_code_base64 = session.get_qr_code_base64(student_url)
+    
+    # Determine if localhost warning should be shown (based on request hostname)
+    host = request.get_host().split(':')[0]
+    is_localhost = host in ['127.0.0.1', 'localhost']
+
     context = {
         'session': session,
         'time_remaining': session.time_remaining_seconds,
         'attendance_list': session.attendance_records.order_by('-marked_at'),
-        'student_url': session.get_student_url(request),
+        'student_url': student_url,
+        'qr_code_base64': qr_code_base64,
+        'is_localhost': is_localhost,
     }
     return render(request, 'attendance/session_qr.html', context)
 

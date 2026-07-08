@@ -53,10 +53,10 @@
           </span>
         </div>
 
-        {% if session.qr_code and session.is_active %}
+        {% if qr_code_base64 and session.is_active %}
         <!-- QR Code Image -->
         <div class="qr-container mb-3 mx-auto" style="max-width: 300px;">
-          <img src="{{ session.qr_code.url }}" alt="Attendance QR Code"
+          <img src="{{ qr_code_base64 }}" alt="Attendance QR Code"
                class="img-fluid" />
         </div>
 
@@ -74,7 +74,7 @@
               <i class="bi bi-copy" id="copyIcon"></i>
             </button>
           </div>
-          {% if session.is_localhost %}
+          {% if is_localhost %}
           <div class="mt-3 bg-danger bg-opacity-10 border border-danger border-opacity-35 rounded-3 p-3 text-danger-emphasis" style="font-size: 12.5px;">
             <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>
             <strong>Warning:</strong> Server IP is resolved as <code>127.0.0.1</code> (localhost). Students cannot connect from their mobile phones. Please make sure:
@@ -111,10 +111,10 @@
           </small>
         </div>
 
-        {% elif session.qr_code and not session.is_active %}
+        {% elif qr_code_base64 and not session.is_active %}
         <!-- Session closed/expired — show dimmed QR -->
         <div class="qr-container mb-4 mx-auto opacity-25" style="max-width: 260px;">
-          <img src="{{ session.qr_code.url }}" alt="QR Code (Expired)" class="img-fluid" />
+          <img src="{{ qr_code_base64 }}" alt="QR Code (Expired)" class="img-fluid" />
         </div>
         <div class="alert alert-warning">
           <i class="bi bi-exclamation-triangle me-2"></i>
