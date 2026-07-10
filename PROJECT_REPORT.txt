@@ -1,0 +1,155 @@
+================================================================================
+                     SMART QR ATTENDANCE SYSTEM - PROJECT REPORT
+================================================================================
+
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+The Smart QR Attendance System is a modern, secure, and robust full-stack web
+application designed to automate student attendance marking in college classrooms.
+The system replaces traditional manual attendance call sheets with dynamic, 
+time-limited QR codes.
+
+Key Features:
+* Faculty Dashboard: Allows instructors to create active attendance sessions
+  specifying Subject, Branch, Semester, Section, Classroom, Duration, and custom 
+  post-submission redirects (e.g., Zoom/Google Meet links).
+* Dynamic QR Codes: Automatically generates high-security QR codes containing 
+  session tokens. To prevent spoofing, the QR codes are generated dynamically 
+  in-memory and served directly to the browser.
+* Student Self-Submission: Students scan the QR code to access a mobile-friendly 
+  attendance marking form where they input their Name, Roll Number, Department, 
+  and optional real-time photo verification if requested by the faculty.
+* Fraud & Spoofing Protection:
+  - Token-Based Security: Each session is signed with a cryptographically secure 
+    random token.
+  - IP Address Audit Trail: Records the client IP address of each student.
+  - LAN/Network Restriction: Optional setting to restrict attendance submission 
+    to specific IP address ranges (e.g., the college Wi-Fi network).
+  - Anti-Duplicate Protection: Prevents submitting multiple records with the same 
+    roll number in the same session.
+* Reports & Exports: Faculty can view session history, see real-time attendance 
+  logs, and export attendance spreadsheets in CSV and Excel formats.
+
+
+2. ARCHITECTURE & TECH STACK
+--------------------------------------------------------------------------------
+The application is built using a modern full-stack architecture:
+* Backend Framework: Django 6.0.6 (Python)
+* Database Layer: Dual-mode support:
+  - Local Development: SQLite (via pysqlite3-binary for modern SQLite features)
+  - Production: Neon PostgreSQL (Serverless cloud database)
+* Styling & Frontend: HTML5, CSS3, Vanilla JavaScript, Bootstrap 5, Bootstrap Icons
+* PDF & Excel Generators: openpyxl for generating Excel reports
+* Deployment Environment: Vercel Serverless Platform (WSGI Python Runtime)
+* Static Assets serving: WhiteNoise middleware for compressed static caching
+
+
+3. DATABASE INTEGRATION
+--------------------------------------------------------------------------------
+The project leverages Neon PostgreSQL for production, utilizing serverless 
+scaling.
+* Connection Pooler: Connects via Neon's connection pooler using dj-database-url
+  to parse the `DATABASE_URL` environment variable.
+* Auto-Migrations: Database migrations are executed automatically during the 
+  build step of the Vercel deployment via `build_files.sh`.
+* ORM: Django's Object-Relational Mapper handles the abstraction between model 
+  classes (Subject, AttendanceSession, Attendance) and the database tables.
+
+
+4. IN-MEMORY DYNAMIC QR GENERATION (VERCEL COMPATIBILITY)
+--------------------------------------------------------------------------------
+Traditional web applications write generated QR codes to a `/media/` folder on 
+the server's local disk. However, modern serverless platforms like Vercel have 
+read-only, ephemeral filesystems where disk writes either fail or are deleted 
+immediately.
+
+To solve this, the Smart QR Attendance System uses an in-memory generation pipeline:
+1. When the session QR page is requested, the system computes the dynamic student URL.
+2. A separate view `session_qr_image` generates the QR code using PIL/Pillow and 
+   the `qrcode` library in-memory.
+3. The image is written to an in-memory byte buffer (BytesIO) and streamed directly 
+   to the client browser as an HTTP response with `content_type="image/png"`.
+4. This ensures 100% reliability, zero disk writes, and instant load times.
+
+
+5. PROJECT DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+smart_qr_attendance/
+│
+├── smart_qr_attendance/      # Core settings and configuration
+│   ├── settings.py           # Database, middleware, and static configuration
+│   ├── urls.py               # Root URL configuration router
+│   └── wsgi.py               # WSGI entrypoint for Vercel deployment
+│
+├── accounts/                 # Authentication app (login/register/passwords)
+│   ├── models.py
+│   ├── urls.py
+│   └── views.py
+│
+├── attendance/               # Core attendance business logic
+│   ├── models.py             # Subject, Session, and Attendance models
+│   ├── urls.py               # Routes for creation, detail, and QR image
+│   ├── utils.py              # IP detection, network filter utilities
+│   └── views.py              # Session management and student submission form
+│
+├── dashboard/                # Faculty dashboard view
+│   ├── urls.py
+│   └── views.py
+│
+├── reports/                  # Excel/CSV reports generation
+│   ├── urls.py
+│   └── views.py
+│
+├── templates/                # Global HTML template files
+│   ├── base.html             # Base shell layout (Navbar, Footer, Bootstrap)
+│   ├── accounts/             # Authentication screens
+│   ├── attendance/           # Session view, Student form, and Error screens
+│   ├── dashboard/            # Faculty main overview
+│   └── reports/              # Historic logs
+│
+├── static/                   # Static files (CSS/JS assets)
+│   ├── css/                  # Custom main.css stylesheet
+│   └── js/                   # Clipboard, countdown, and webcam scripts
+│
+├── vercel.json               # Vercel serverless deployment descriptor
+├── build_files.sh            # Production installation and migration script
+└── requirements.txt          # Python project dependencies
+
+
+6. VERCEL DEPLOYMENT CONFIGURATION
+--------------------------------------------------------------------------------
+The project is configured for Vercel using `vercel.json` and a custom build hook:
+* Build Script (`build_files.sh`):
+  1. Installs Python packages using `pip install --break-system-packages` to 
+     bypass managed environment restrictions.
+  2. Runs `collectstatic` to gather all CSS/JS/Image assets into `staticfiles/`.
+  3. Runs database migrations automatically on Neon PostgreSQL.
+* Routing & Assets Serving (`vercel.json`):
+  - Builds the python function package via `@vercel/python`.
+  - Builds the static files via `@vercel/static-build`, configuring `staticfiles` 
+    as the distribution folder.
+  - Maps incoming `/static/*` requests directly to the static CDN, while 
+    redirecting all page traffic to `wsgi.py`.
+
+
+7. LOCAL SETUP AND INSTALLATION
+--------------------------------------------------------------------------------
+To run the system locally on your development machine:
+
+1. Clone the repository and navigate to the project directory.
+2. Create a virtual environment and activate it:
+   $ python -m venv venv
+   $ venv\Scripts\activate   # Windows
+   $ source venv/bin/activate # macOS/Linux
+3. Install the dependencies:
+   $ pip install -r requirements.txt
+4. Configure your database:
+   - Create a `.env` file in the root directory based on `.env.example`.
+   - Specify your `DATABASE_URL` (or leave it empty to fallback to local SQLite).
+5. Apply migrations:
+   - Run: `python manage.py migrate`
+6. Start the server (expose on local network IP so students can connect):
+   - Run: `python manage.py runserver 0.0.0.0:8000`
+7. Access the application:
+   - Navigate to `http://127.0.0.1:8000` in your web browser.
+================================================================================
