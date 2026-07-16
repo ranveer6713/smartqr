@@ -116,6 +116,7 @@ To run the project on your development machine:
 3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
+   
    ```
 
 4. **Environment Variables**:
